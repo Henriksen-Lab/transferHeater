@@ -9,7 +9,7 @@ double Setpoint, Input, Output;
 
 //Specify the links and initial tuning parameters
 //No idea if the default Kp Ki Kd are correct
-PID myPID(&Input, &Output, &Setpoint, 2, 5, 1, DIRECT);
+PID myPID(&Input, &Output, &Setpoint, .05, .01, 5, DIRECT);
 
 unsigned long now = millis();
 unsigned long then = millis();
@@ -177,9 +177,9 @@ void slowPWM(double setPer) {
 }
 //Read a temperature value. refResitance and the slope should be calibrated. Nominal: 100 Ohm refResist, 0.385 Ohm/C, 100 Ohm at 0 C
 double readRTD() {
-  double refResistance = 100;
-  double vOut = analogRead(RTD) * 5 / 1024;
-  double resistance = refResistance * vOut / (5 - vOut);
-  double temperature = (resistance - 100) / .385;
+  double refResistance = 100.0;
+  double vOut = analogRead(RTD) * 5.0 / 1024.0;
+  double resistance = refResistance * vOut / (5.0 - vOut);
+  double temperature = (resistance - 100.0) / .385;
   return temperature;
 }
