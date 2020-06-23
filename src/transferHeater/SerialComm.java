@@ -8,26 +8,21 @@ public class SerialComm {
 	SerialPort port;
 	
 	private boolean debug;  // Indicator of "debugging mode"
-	private int counts = 0;
 	public static void main(String []args) {
-		Scanner in = new Scanner(System.in);
+		
 		try {
+
 			SerialComm comm = new SerialComm("com3");
 			//comm.setDebug(true);
+			//Listens for command inputs in separate thread so to not block main thread.
+			CommandListener commandListener = new CommandListener(comm);
+			Thread t = new Thread(commandListener);
+			t.start();
 			while(true){
 				if(comm.available()) {
 					char result = (char)comm.readByte();
 					System.out.print(result);
 				}
-				/*
-				if(in.hasNext()) {
-				String s = in.nextLine();
-					for(int i = 0; i<s.length(); i++) {
-						byte num = (byte)s.charAt(i);
-						comm.writeByte(num);
-					}
-				}
-				*/
 			}
 		} catch (SerialPortException e) {
 			// TODO Auto-generated catch block
@@ -89,8 +84,6 @@ public class SerialComm {
 	public byte readByte() {
 		try {
 			byte[] result = this.port.readBytes(1);
-			//System.out.println(counts+"reads");
-			counts++;
 			if(this.debug) {
 				String debugString = "[0x"+String.format("%02x", result[0])+"]";
 				System.out.println(debugString);
