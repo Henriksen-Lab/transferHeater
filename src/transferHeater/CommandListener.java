@@ -1,8 +1,6 @@
 package transferHeater;
 import java.util.Scanner;
 
-import jssc.*;
-
 public class CommandListener implements Runnable {
 
 	private SerialComm comm;
@@ -13,6 +11,7 @@ public class CommandListener implements Runnable {
 	@Override
 	public void run() {
 		//This runs when the thread is spawned. Needs to be multithreaded because .hasNext() is blocking.
+		@SuppressWarnings("resource")
 		Scanner in = new Scanner(System.in);
 		while(in.hasNext()) {
 			String s = in.nextLine();
@@ -22,5 +21,4 @@ public class CommandListener implements Runnable {
 			}
 		}
 	}
-
 }
