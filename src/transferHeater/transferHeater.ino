@@ -21,7 +21,7 @@ unsigned long statusThen = millis();
 
 unsigned long computeNow = millis();
 unsigned long computeThen = millis();
-
+//hello
 enum serialState {
   idle,
   magic,
