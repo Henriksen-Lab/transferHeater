@@ -7,10 +7,14 @@
 
 #include <Adafruit_MAX31865.h>
 Adafruit_MAX31865 thermo = Adafruit_MAX31865(5, 6, 7, 8);
+
 // The value of the Rref resistor. Use 430.0 for PT100 and 4300.0 for PT1000
+
 #define RREF      430.0
+
 // The 'nominal' 0-degrees-C resistance of the sensor
 // 100.0 for PT100, 1000.0 for PT1000
+
 #define RNOMINAL  100.0
 
 //Define Variables we'll be connecting to
@@ -18,7 +22,10 @@ double Setpoint, Input, Output;
 
 //Specify the links and initial tuning parameters
 //No idea if the default Kp Ki Kd are correct
-PID myPID(&Input, &Output, &Setpoint, .01, .01, 30, DIRECT);
+double aggKp=.1, aggKi=.1, aggKd=10;
+double consKp=50, consKi=.1, consKd=1;
+
+PID myPID(&Input, &Output, &Setpoint, consKp, consKi, consKd, DIRECT);
 
 unsigned long now = millis();
 unsigned long then = millis();
@@ -42,6 +49,7 @@ enum serialState {
   d5,
   finalizing
 };
+
 double unconfirmedSetpoint = 0;
 serialState state = idle;
 int i = 0;
@@ -61,11 +69,22 @@ void setup() {
 
 void loop() {
   computeNow = millis();
-  if (computeNow >= computeThen + 250) {
+  if (computeNow >= computeThen + 200) {
     Input = readRTD();
+    if(Input- Setpoint >= 0){
+       myPID.SetTunings(consKp, consKi, consKd);
+       Serial.println("Down parameters"); 
+    }
+
+   else{ 
+     myPID.SetTunings(aggKp, aggKi, aggKd);
+     Serial.println("Up parameters"); 
+   }
     myPID.Compute();
+    Serial.print("Output is: ");
+    Serial.println(Output);
     computeThen = computeNow;
-  }
+  } 
   slowPWM(Output);
   
   //Valid command format "CS ###.#E". Example: "CS 090.3E" for temperature setpoint of 90.3 C
@@ -173,8 +192,11 @@ void loop() {
 //Low frequency PWM for the solid state relay
 void slowPWM(double setPer) {
   //In milliseconds
-  double period = 250;
+  double period = 200;
   double onTime = period * setPer / 100;
+ // Serial.print("Ontime: ");
+  //CS 035.0E
+  //Serial.println(onTime);
   now = millis();
   if (now >= then + onTime && heaterState) {
     //Turn heater off
