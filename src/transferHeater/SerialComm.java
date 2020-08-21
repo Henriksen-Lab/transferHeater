@@ -9,13 +9,13 @@ public class SerialComm {
 	private boolean debug;  // Indicator of "debugging mode"	
 	
 	// This function can be called to enable or disable "debugging mode"
-	void setDebug(boolean mode) {
+	void setDebug(final boolean mode) {
 		debug = mode;
 	}	
 	
 
 	// Constructor for the SerialComm class
-	public SerialComm(String name) throws SerialPortException {
+	public SerialComm(final String name) throws SerialPortException {
 		port = new SerialPort(name);		
 		port.openPort();
 		port.setParams(SerialPort.BAUDRATE_9600,
@@ -25,20 +25,20 @@ public class SerialComm {
 		
 		debug = false; // Default is to NOT be in debug mode
 	}
-	public void writeByte(byte num) {
+	public void writeByte(final byte num) {
 		if(this.debug) {
 			try {
 				this.port.writeByte(num);
 				System.out.println(String.format("<0x%x>", num));
-			} catch (SerialPortException e) {
-				// TODO Auto-generated catch block
+			} catch (final SerialPortException e) {
+
 				e.printStackTrace();
 			}
 		}else {			
 			try {
 				this.port.writeByte(num);
-			} catch (SerialPortException e) {
-				// TODO Auto-generated catch block
+			} catch (final SerialPortException e) {
+
 				e.printStackTrace();
 			}
 		}
@@ -50,24 +50,22 @@ public class SerialComm {
 			}else {
 				return false;
 			}
-		} catch (SerialPortException e) {
-			// TODO Auto-generated catch block
+		} catch (final SerialPortException e) {
 			e.printStackTrace();
 			return false;
 		}
 	}
 	public byte readByte() {
 		try {
-			byte[] result = this.port.readBytes(1);
+			final byte[] result = this.port.readBytes(1);
 			if(this.debug) {
-				String debugString = "[0x"+String.format("%02x", result[0])+"]";
+				final String debugString = "[0x"+String.format("%02x", result[0])+"]";
 				System.out.println(debugString);
 			}
 			return result[0];
-		} catch (SerialPortException e) {
-			// TODO Auto-generated catch block
+		} catch (final SerialPortException e) {
 			e.printStackTrace();
-			byte num = 0;
+			final byte num = 0;
 			return num;
 		}
 
