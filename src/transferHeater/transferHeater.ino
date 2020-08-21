@@ -4,12 +4,28 @@
 #define relayPin B00101000 //Pin 11 && 13
 #define RTD A3
 
+
+#include <Adafruit_MAX31865.h>
+Adafruit_MAX31865 thermo = Adafruit_MAX31865(5, 6, 7, 8);
+
+// The value of the Rref resistor. Use 430.0 for PT100 and 4300.0 for PT1000
+
+#define RREF      430.0
+
+// The 'nominal' 0-degrees-C resistance of the sensor
+// 100.0 for PT100, 1000.0 for PT1000
+
+#define RNOMINAL  100.0
+
 //Define Variables we'll be connecting to
 double Setpoint, Input, Output;
 
 //Specify the links and initial tuning parameters
 //No idea if the default Kp Ki Kd are correct
-PID myPID(&Input, &Output, &Setpoint, .05, .01, 5, DIRECT);
+double aggKp=.1, aggKi=.1, aggKd=10;
+double consKp=50, consKi=.1, consKd=1;
+
+PID myPID(&Input, &Output, &Setpoint, consKp, consKi, consKd, DIRECT);
 
 unsigned long now = millis();
 unsigned long then = millis();
@@ -21,7 +37,7 @@ unsigned long statusThen = millis();
 
 unsigned long computeNow = millis();
 unsigned long computeThen = millis();
-//hello
+
 enum serialState {
   idle,
   magic,
@@ -33,6 +49,7 @@ enum serialState {
   d5,
   finalizing
 };
+
 double unconfirmedSetpoint = 0;
 serialState state = idle;
 int i = 0;
@@ -47,15 +64,27 @@ void setup() {
   //Turn the PID on
   myPID.SetMode(AUTOMATIC);
   Serial.begin(9600);
+  thermo.begin(MAX31865_3WIRE);
 }
 
 void loop() {
   computeNow = millis();
-  if (computeNow >= computeThen + 250) {
+  if (computeNow >= computeThen + 200) {
     Input = readRTD();
+    if(Input- Setpoint >= 0){
+       myPID.SetTunings(consKp, consKi, consKd);
+       Serial.println("Down parameters"); 
+    }
+
+   else{ 
+     myPID.SetTunings(aggKp, aggKi, aggKd);
+     Serial.println("Up parameters"); 
+   }
     myPID.Compute();
+    Serial.print("Output is: ");
+    Serial.println(Output);
     computeThen = computeNow;
-  }
+  } 
   slowPWM(Output);
   
   //Valid command format "CS ###.#E". Example: "CS 090.3E" for temperature setpoint of 90.3 C
@@ -152,7 +181,9 @@ void loop() {
   statusNow = millis();
   if (statusNow >= statusThen + 3000) {
     statusThen = statusNow;
-    Serial.print("The setpoint is: ");
+    Serial.print("The time is: ");
+    Serial.print(statusNow);
+    Serial.print(" The setpoint is: ");
     Serial.print(Setpoint);
     Serial.print(". The current temperature is: ");
     Serial.println(readRTD());
@@ -161,8 +192,11 @@ void loop() {
 //Low frequency PWM for the solid state relay
 void slowPWM(double setPer) {
   //In milliseconds
-  double period = 250;
+  double period = 200;
   double onTime = period * setPer / 100;
+ // Serial.print("Ontime: ");
+  //CS 035.0E
+  //Serial.println(onTime);
   now = millis();
   if (now >= then + onTime && heaterState) {
     //Turn heater off
@@ -177,9 +211,40 @@ void slowPWM(double setPer) {
 }
 //Read a temperature value. refResitance and the slope should be calibrated. Nominal: 100 Ohm refResist, 0.385 Ohm/C, 100 Ohm at 0 C
 double readRTD() {
-  double refResistance = 100.0;
-  double vOut = analogRead(RTD) * 5.0 / 1024.0;
-  double resistance = refResistance * vOut / (5.0 - vOut);
-  double temperature = (resistance - 100.0) / .385;
+   uint16_t rtd = thermo.readRTD();
+
+ // Serial.print("RTD value: "); Serial.println(rtd);
+  float ratio = rtd;
+  ratio /= 32768;
+  //Serial.print("Ratio = "); Serial.println(ratio,8);
+ // Serial.print("Resistance = "); Serial.println(RREF*ratio,8);
+  double temperature = thermo.temperature(RNOMINAL, RREF);
+ // Serial.print("Temperature = "); Serial.println(temperature);
+
+  // Check and print any faults
+  uint8_t fault = thermo.readFault();
+  if (fault) {
+    Serial.print("Fault 0x"); Serial.println(fault, HEX);
+    if (fault & MAX31865_FAULT_HIGHTHRESH) {
+      Serial.println("RTD High Threshold"); 
+    }
+    if (fault & MAX31865_FAULT_LOWTHRESH) {
+      Serial.println("RTD Low Threshold"); 
+    }
+    if (fault & MAX31865_FAULT_REFINLOW) {
+      Serial.println("REFIN- > 0.85 x Bias"); 
+    }
+    if (fault & MAX31865_FAULT_REFINHIGH) {
+      Serial.println("REFIN- < 0.85 x Bias - FORCE- open"); 
+    }
+    if (fault & MAX31865_FAULT_RTDINLOW) {
+      Serial.println("RTDIN- < 0.85 x Bias - FORCE- open"); 
+    }
+    if (fault & MAX31865_FAULT_OVUV) {
+      Serial.println("Under/Over voltage"); 
+    }
+    thermo.clearFault();
+  }
+  //Serial.println();
   return temperature;
 }
