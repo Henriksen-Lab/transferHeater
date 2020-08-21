@@ -7,7 +7,7 @@ public class Runner {
 		
 		try {
 			//Create SerialComm with the port listed in the Arduino IDE.
-			SerialComm comm = new SerialComm("/dev/cu.usbmodem142101");
+			SerialComm comm = new SerialComm("COM4");
 			//comm.setDebug(true);
 			//Listens for command inputs in separate thread so to not block main thread.
 			CommandListener commandListener = new CommandListener(comm);
