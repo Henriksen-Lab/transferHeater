@@ -1,5 +1,5 @@
-/bin/
-/.vscode/
-/.project
-/.settings/
-/.classpath
+bin/
+.vscode/
+.project
+.settings/
+.classpath
